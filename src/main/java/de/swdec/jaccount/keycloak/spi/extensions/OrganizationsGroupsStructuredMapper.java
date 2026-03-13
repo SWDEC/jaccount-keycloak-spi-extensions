@@ -13,7 +13,7 @@ import org.keycloak.protocol.oidc.mappers.UserInfoTokenMapper;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.representations.AccessToken;
 
-public class OrganizationGroupsStructuredMapper
+public class OrganizationsGroupsStructuredMapper
         extends AbstractOIDCProtocolMapper
         implements UserInfoTokenMapper {
 
