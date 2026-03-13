@@ -24,17 +24,17 @@ public class OrganizationGroupsStructuredMapper
 
     @Override
     public String getDisplayCategory() {
-        return "Token Mapper";
+        return TOKEN_MAPPER_CATEGORY;
     }
 
     @Override
     public String getHelpText() {
-        return "Organization Groups Structured Mapper";
+        return "Add a claim in the form \"groups\": [ { \"id\": \"group-id\", \"name\": \"Group 1\" }, ...]";
     }
 
     @Override
     public String getDisplayType() {
-        return "Token Mapper";
+        return "Organization Groups Structured";
     }
 
     @Override
