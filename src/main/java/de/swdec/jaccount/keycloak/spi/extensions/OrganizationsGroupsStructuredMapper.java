@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-
 import org.keycloak.models.ClientSessionContext;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.OrganizationModel;
@@ -18,16 +17,20 @@ import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.representations.AccessToken;
 
 public class OrganizationsGroupsStructuredMapper
-        extends AbstractOIDCProtocolMapper
-        implements UserInfoTokenMapper {
+    extends AbstractOIDCProtocolMapper
+    implements UserInfoTokenMapper
+{
 
-    public static final String PROVIDER_ID = "organization-groups-structured-mapper";
+    public static final String PROVIDER_ID =
+        "organization-groups-structured-mapper";
 
-    private static final List<ProviderConfigProperty> configProperties = new ArrayList<>();
+    private static final List<ProviderConfigProperty> configProperties =
+        new ArrayList<>();
     private static final String CONFIG_PROP_ORGS_AS_GROUPS = "orgs_as_groups";
     private static final String CONFIG_PROP_ORG_ID_PREFIX = "org_id_prefix";
     private static final String CONFIG_PROP_GROUP_ID_PREFIX = "group_id_prefix";
-    private static final String CONFIG_PROP_ID_OVERRIDE_ATTR = "id_override_attr";
+    private static final String CONFIG_PROP_ID_OVERRIDE_ATTR =
+        "id_override_attr";
 
     static {
         // Add option to configure the claim name
@@ -38,7 +41,9 @@ public class OrganizationsGroupsStructuredMapper
         property = new ProviderConfigProperty();
         property.setName(CONFIG_PROP_ORGS_AS_GROUPS);
         property.setLabel("Include Organizations as groups");
-        property.setHelpText("In addition to organization groups, should the token also include organizations the user is a member of? This will look to the application like the user is part of a group called the name of the organization.");
+        property.setHelpText(
+            "In addition to organization groups, should the token also include organizations the user is a member of? This will look to the application like the user is part of a group called the name of the organization."
+        );
         property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
         configProperties.add(property);
 
@@ -46,7 +51,9 @@ public class OrganizationsGroupsStructuredMapper
         property = new ProviderConfigProperty();
         property.setName(CONFIG_PROP_GROUP_ID_PREFIX);
         property.setLabel("ID-Prefix for Groups");
-        property.setHelpText("To avoid collisions among group and org ids, add a prefix that will be added to the group ids.");
+        property.setHelpText(
+            "To avoid collisions among group and org ids, add a prefix that will be added to the group ids."
+        );
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
 
@@ -54,7 +61,9 @@ public class OrganizationsGroupsStructuredMapper
         property = new ProviderConfigProperty();
         property.setName(CONFIG_PROP_ORG_ID_PREFIX);
         property.setLabel("ID-Prefix for Organizations as groups");
-        property.setHelpText("To avoid collisions among group and org ids, add a prefix that will be added to the organization ids.");
+        property.setHelpText(
+            "To avoid collisions among group and org ids, add a prefix that will be added to the organization ids."
+        );
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
 
@@ -62,7 +71,9 @@ public class OrganizationsGroupsStructuredMapper
         property = new ProviderConfigProperty();
         property.setName(CONFIG_PROP_ID_OVERRIDE_ATTR);
         property.setLabel("ID-overriding attribute name");
-        property.setHelpText("Use the specified attribute name in place of the group/org ID if found. Useful for connecting legacy systems, where you can add an attribute to the orgs/groups in Keycloak, and keep using pre-existing legacy system IDs.");
+        property.setHelpText(
+            "Use the specified attribute name in place of the group/org ID if found. Useful for connecting legacy systems, where you can add an attribute to the orgs/groups in Keycloak, and keep using pre-existing legacy system IDs."
+        );
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
     }
@@ -93,20 +104,39 @@ public class OrganizationsGroupsStructuredMapper
     }
 
     public AccessToken transformUserInfoToken(
-            AccessToken token,
-            ProtocolMapperModel mappingModel,
-            KeycloakSession session,
-            UserSessionModel userSession,
-            ClientSessionContext clientSessionCtx) {
-        final boolean orgsAsGroups = Boolean.parseBoolean(mappingModel.getConfig().getOrDefault(CONFIG_PROP_ORGS_AS_GROUPS, Boolean.FALSE.toString()));
-        final String orgIdPrefix = mappingModel.getConfig().getOrDefault(CONFIG_PROP_ORG_ID_PREFIX, "");
-        final String groupIdPrefix = mappingModel.getConfig().getOrDefault(CONFIG_PROP_GROUP_ID_PREFIX, "");
-        final String idOverrideAttr = mappingModel.getConfig().getOrDefault(CONFIG_PROP_ID_OVERRIDE_ATTR, null);
-        
-        OrganizationProvider orgProvider = session.getProvider(OrganizationProvider.class);
-        Stream<OrganizationModel> organizations = orgProvider.getByMember(userSession.getUser());
+        AccessToken token,
+        ProtocolMapperModel mappingModel,
+        KeycloakSession session,
+        UserSessionModel userSession,
+        ClientSessionContext clientSessionCtx
+    ) {
+        final boolean orgsAsGroups = Boolean.parseBoolean(
+            mappingModel
+                .getConfig()
+                .getOrDefault(
+                    CONFIG_PROP_ORGS_AS_GROUPS,
+                    Boolean.FALSE.toString()
+                )
+        );
+        final String orgIdPrefix = mappingModel
+            .getConfig()
+            .getOrDefault(CONFIG_PROP_ORG_ID_PREFIX, "");
+        final String groupIdPrefix = mappingModel
+            .getConfig()
+            .getOrDefault(CONFIG_PROP_GROUP_ID_PREFIX, "");
+        final String idOverrideAttr = mappingModel
+            .getConfig()
+            .getOrDefault(CONFIG_PROP_ID_OVERRIDE_ATTR, null);
 
-        List<Map<String, String>> orgGroups = organizations.flatMap(org -> {
+        OrganizationProvider orgProvider = session.getProvider(
+            OrganizationProvider.class
+        );
+        Stream<OrganizationModel> organizations = orgProvider.getByMember(
+            userSession.getUser()
+        );
+
+        List<Map<String, String>> orgGroups = organizations
+            .flatMap(org -> {
                 List<Map<String, String>> groups = List.of();
 
                 // Include this org as a group if configured
