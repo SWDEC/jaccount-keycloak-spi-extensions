@@ -1,0 +1,13 @@
+version: "3"
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.5 # should match keycloak version defined in pom.xml
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./target:/opt/keycloak/providers
