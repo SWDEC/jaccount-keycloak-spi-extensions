@@ -7,7 +7,7 @@
     { self, ... }@inputs:
 
     let
-      javaVersion = 17; # Change this value to update the whole stack. Should match version in pom.xml.
+      javaVersion = 21; # Change this value to update the whole stack. Should match version in pom.xml.
 
       supportedSystems = [
         "x86_64-linux"
@@ -46,7 +46,6 @@
           default = pkgs.mkShellNoCC {
             packages = with pkgs; [
               gcc
-              gradle
               jdk
               maven
               ncurses
