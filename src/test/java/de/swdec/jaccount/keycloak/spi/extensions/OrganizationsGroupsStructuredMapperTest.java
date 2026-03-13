@@ -39,6 +39,7 @@ public class OrganizationsGroupsStructuredMapperTest {
 
         when(org.getId()).thenReturn("org1");
         when(org.getName()).thenReturn("Acme");
+        when(org.isEnabled()).thenReturn(true);
 
         // ----- mapper config -----
 

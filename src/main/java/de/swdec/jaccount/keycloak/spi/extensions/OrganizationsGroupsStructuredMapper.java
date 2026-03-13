@@ -1,6 +1,7 @@
 package de.swdec.jaccount.keycloak.spi.extensions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -10,6 +11,7 @@ import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.organization.OrganizationProvider;
+import org.keycloak.protocol.ProtocolMapperUtils;
 import org.keycloak.protocol.oidc.mappers.AbstractOIDCProtocolMapper;
 import org.keycloak.protocol.oidc.mappers.OIDCAttributeMapperHelper;
 import org.keycloak.protocol.oidc.mappers.UserInfoTokenMapper;
@@ -17,20 +19,16 @@ import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.representations.AccessToken;
 
 public class OrganizationsGroupsStructuredMapper
-    extends AbstractOIDCProtocolMapper
-    implements UserInfoTokenMapper
-{
+        extends AbstractOIDCProtocolMapper
+        implements UserInfoTokenMapper {
 
-    public static final String PROVIDER_ID =
-        "organization-groups-structured-mapper";
+    public static final String PROVIDER_ID = "organization-groups-structured-mapper";
 
-    private static final List<ProviderConfigProperty> configProperties =
-        new ArrayList<>();
+    private static final List<ProviderConfigProperty> configProperties = new ArrayList<>();
     private static final String CONFIG_PROP_ORGS_AS_GROUPS = "orgs_as_groups";
     private static final String CONFIG_PROP_ORG_ID_PREFIX = "org_id_prefix";
     private static final String CONFIG_PROP_GROUP_ID_PREFIX = "group_id_prefix";
-    private static final String CONFIG_PROP_ID_OVERRIDE_ATTR =
-        "id_override_attr";
+    private static final String CONFIG_PROP_ID_OVERRIDE_ATTR = "id_override_attr";
 
     static {
         // Add option to configure the claim name
@@ -42,8 +40,7 @@ public class OrganizationsGroupsStructuredMapper
         property.setName(CONFIG_PROP_ORGS_AS_GROUPS);
         property.setLabel("Include Organizations as groups");
         property.setHelpText(
-            "In addition to organization groups, should the token also include organizations the user is a member of? This will look to the application like the user is part of a group called the name of the organization."
-        );
+                "In addition to organization groups, should the token also include organizations the user is a member of? This will look to the application like the user is part of a group called the name of the organization.");
         property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
         configProperties.add(property);
 
@@ -52,8 +49,7 @@ public class OrganizationsGroupsStructuredMapper
         property.setName(CONFIG_PROP_GROUP_ID_PREFIX);
         property.setLabel("ID-Prefix for Groups");
         property.setHelpText(
-            "To avoid collisions among group and org ids, add a prefix that will be added to the group ids."
-        );
+                "To avoid collisions among group and org ids, add a prefix that will be added to the group ids.");
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
 
@@ -62,18 +58,17 @@ public class OrganizationsGroupsStructuredMapper
         property.setName(CONFIG_PROP_ORG_ID_PREFIX);
         property.setLabel("ID-Prefix for Organizations as groups");
         property.setHelpText(
-            "To avoid collisions among group and org ids, add a prefix that will be added to the organization ids."
-        );
+                "To avoid collisions among group and org ids, add a prefix that will be added to the organization ids.");
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
 
-        // Add a setting to override the ids of orgs or groups if the specified attribute exists
+        // Add a setting to override the ids of orgs or groups if the specified
+        // attribute exists
         property = new ProviderConfigProperty();
         property.setName(CONFIG_PROP_ID_OVERRIDE_ATTR);
         property.setLabel("ID-overriding attribute name");
         property.setHelpText(
-            "Use the specified attribute name in place of the group/org ID if found. Useful for connecting legacy systems, where you can add an attribute to the orgs/groups in Keycloak, and keep using pre-existing legacy system IDs."
-        );
+                "Use the specified attribute name in place of the group/org ID if found. Useful for connecting legacy systems, where you can add an attribute to the orgs/groups in Keycloak, and keep using pre-existing legacy system IDs.");
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
     }
@@ -104,60 +99,63 @@ public class OrganizationsGroupsStructuredMapper
     }
 
     public AccessToken transformUserInfoToken(
-        AccessToken token,
-        ProtocolMapperModel mappingModel,
-        KeycloakSession session,
-        UserSessionModel userSession,
-        ClientSessionContext clientSessionCtx
-    ) {
+            AccessToken token,
+            ProtocolMapperModel mappingModel,
+            KeycloakSession session,
+            UserSessionModel userSession,
+            ClientSessionContext clientSessionCtx) {
         final boolean orgsAsGroups = Boolean.parseBoolean(
-            mappingModel
-                .getConfig()
-                .getOrDefault(
-                    CONFIG_PROP_ORGS_AS_GROUPS,
-                    Boolean.FALSE.toString()
-                )
-        );
+                mappingModel
+                        .getConfig()
+                        .getOrDefault(
+                                CONFIG_PROP_ORGS_AS_GROUPS,
+                                Boolean.FALSE.toString()));
         final String orgIdPrefix = mappingModel
-            .getConfig()
-            .getOrDefault(CONFIG_PROP_ORG_ID_PREFIX, "");
+                .getConfig()
+                .getOrDefault(CONFIG_PROP_ORG_ID_PREFIX, "");
         final String groupIdPrefix = mappingModel
-            .getConfig()
-            .getOrDefault(CONFIG_PROP_GROUP_ID_PREFIX, "");
+                .getConfig()
+                .getOrDefault(CONFIG_PROP_GROUP_ID_PREFIX, "");
         final String idOverrideAttr = mappingModel
-            .getConfig()
-            .getOrDefault(CONFIG_PROP_ID_OVERRIDE_ATTR, null);
+                .getConfig()
+                .getOrDefault(CONFIG_PROP_ID_OVERRIDE_ATTR, null);
 
         OrganizationProvider orgProvider = session.getProvider(
-            OrganizationProvider.class
-        );
-        Stream<OrganizationModel> organizations = orgProvider.getByMember(
-            userSession.getUser()
-        );
+                OrganizationProvider.class);
+        Stream<OrganizationModel> organizations = orgProvider
+                .getByMember(userSession.getUser())
+                .filter(OrganizationModel::isEnabled);
 
         List<Map<String, String>> orgGroups = organizations
-            .flatMap(org -> {
-                List<Map<String, String>> groups = List.of();
+                .flatMap(org -> {
+                    List<Map<String, String>> groups = new ArrayList<>();
 
-                // Include this org as a group if configured
-                if (orgsAsGroups) {
-                    String orgId = orgIdPrefix + org.getId();
-                    // Allow overriding the ID with the specified attribute
-                    if (idOverrideAttr != null) {
-                        var attr = org.getAttributes().get(idOverrideAttr);
-                        if (attr != null && attr.size() > 0) {
-                            orgId = attr.get(0);
+                    // Include this org as a group if configured
+                    if (orgsAsGroups) {
+                        String orgId = orgIdPrefix + org.getId();
+                        // Allow overriding the ID with the specified attribute
+                        if (idOverrideAttr != null) {
+                            var attr = org.getAttributes().get(idOverrideAttr);
+                            if (attr != null && attr.size() > 0) {
+                                orgId = attr.get(0);
+                            }
                         }
+
+                        groups.add(Map.of("id", orgId, "name", org.getName()));
                     }
 
-                    groups.add(Map.of("id", orgId, "name", org.getName()));
-                }
+                    // TODO: Add org groups
+                    // orgProvider.getOrganizationGroupsByMember(organization, user).map(ModelToRepresentation::buildGroupPath)
 
-                // TODO: Add org groups
+                    return groups.stream();
+                })
+                .toList();
 
-                return groups.stream();
-            })
-            .toList();
+        // Always tell the OIDCAttributeMapperHelper that this property is multivalued
+        // (= an array)
+        var config = new HashMap<String, String>(mappingModel.getConfig());
+        config.put(ProtocolMapperUtils.MULTIVALUED, Boolean.TRUE.toString());
+        mappingModel.setConfig(config);
 
         OIDCAttributeMapperHelper.mapClaim(token, mappingModel, orgGroups);
 
