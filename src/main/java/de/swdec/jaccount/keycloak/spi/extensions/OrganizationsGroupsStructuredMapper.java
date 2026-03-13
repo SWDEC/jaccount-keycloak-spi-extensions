@@ -8,6 +8,7 @@ import org.keycloak.models.ClientSessionContext;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.UserSessionModel;
+import org.keycloak.protocol.ProtocolMapperUtils;
 import org.keycloak.protocol.oidc.mappers.AbstractOIDCProtocolMapper;
 import org.keycloak.protocol.oidc.mappers.OIDCAttributeMapperHelper;
 import org.keycloak.protocol.oidc.mappers.UserInfoTokenMapper;
@@ -23,7 +24,17 @@ public class OrganizationsGroupsStructuredMapper
     private static final List<ProviderConfigProperty> configProperties = new ArrayList<>();
 
     static {
+        // Add option to configure the claim name
         OIDCAttributeMapperHelper.addTokenClaimNameConfig(configProperties);
+
+        // Add toggle to include organizations themselves as groups
+        ProviderConfigProperty property;
+        property = new ProviderConfigProperty();
+        property.setName("orgs_as_groups");
+        property.setLabel("Include Organizations as groups");
+        property.setHelpText("In addition to organization groups, should the token also include organizations the user is a member of? This will look to the application like the user is part of a group called the name of the organization.");
+        property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
+        configProperties.add(property);
     }
 
     @Override
