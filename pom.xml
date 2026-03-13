@@ -3,7 +3,7 @@
 
   <groupId>de.swdec.jaccount.keycloak.spi.extensions</groupId>
   <artifactId>jaccount-keycloak-spi-extensions</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
 
   <properties>
     <keycloak.version>26.5.5</keycloak.version>
