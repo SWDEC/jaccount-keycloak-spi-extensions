@@ -78,7 +78,7 @@ public class OrganizationsGroupsStructuredMapperTest {
 
         Map<?, ?> first = (Map<?, ?>) groups.get(0);
 
-        assertEquals("org:org1", first.get("id"));
-        assertEquals("Acme", first.get("name"));
+        assertEquals("org:org1", first.get("gid"));
+        assertEquals("Acme", first.get("displayName"));
     }
 }

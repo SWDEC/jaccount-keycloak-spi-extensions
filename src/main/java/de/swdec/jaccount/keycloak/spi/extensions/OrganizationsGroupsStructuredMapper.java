@@ -141,7 +141,7 @@ public class OrganizationsGroupsStructuredMapper
                             }
                         }
 
-                        groups.add(Map.of("id", orgId, "name", org.getName()));
+                        groups.add(Map.of("gid", orgId, "displayName", org.getName()));
                     }
 
                     // TODO: Add org groups
@@ -156,6 +156,7 @@ public class OrganizationsGroupsStructuredMapper
         var config = new HashMap<String, String>(mappingModel.getConfig());
         config.put(ProtocolMapperUtils.MULTIVALUED, Boolean.TRUE.toString());
         mappingModel.setConfig(config);
+
 
         OIDCAttributeMapperHelper.mapClaim(token, mappingModel, orgGroups);
 
