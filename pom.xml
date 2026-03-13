@@ -13,11 +13,14 @@
 
   <properties>
     <keycloak.version>26.5.5</keycloak.version>
+    <junit.version>5.10.2</junit.version>
+    <mockito.version>5.23.0</mockito.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
   </properties>
 
   <dependencies>
+    <!--Keycloak-->
     <dependency>
       <groupId>org.keycloak</groupId>
       <artifactId>keycloak-server-spi</artifactId>
@@ -35,5 +38,27 @@
       <artifactId>keycloak-services</artifactId>
       <version>${keycloak.version}</version>
     </dependency>
+
+    <!--Testing-->
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
   </dependencies>
 </project>
