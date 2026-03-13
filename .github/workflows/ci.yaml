@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -37,7 +37,8 @@ jobs:
       is_upgraded_version: ${{ steps.version.outputs.is_upgraded_version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        fetch-depth: 0
 
       - name: Extract version from pom
         id: version
@@ -65,7 +66,7 @@ jobs:
     if: needs.check_if_version_upgraded.outputs.is_upgraded_version == 'true'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Java
         uses: actions/setup-java@v4
