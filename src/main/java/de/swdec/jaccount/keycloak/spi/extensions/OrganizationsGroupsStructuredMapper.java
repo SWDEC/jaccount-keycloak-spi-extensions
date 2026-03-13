@@ -9,6 +9,7 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.UserSessionModel;
 import org.keycloak.protocol.oidc.mappers.AbstractOIDCProtocolMapper;
+import org.keycloak.protocol.oidc.mappers.OIDCAttributeMapperHelper;
 import org.keycloak.protocol.oidc.mappers.UserInfoTokenMapper;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.representations.AccessToken;
@@ -21,6 +22,9 @@ public class OrganizationsGroupsStructuredMapper
 
     private static final List<ProviderConfigProperty> configProperties = new ArrayList<>();
 
+    static {
+        OIDCAttributeMapperHelper.addTokenClaimNameConfig(configProperties);
+    }
 
     @Override
     public String getDisplayCategory() {
@@ -29,7 +33,7 @@ public class OrganizationsGroupsStructuredMapper
 
     @Override
     public String getHelpText() {
-        return "Add a claim in the form \"groups\": [ { \"id\": \"group-id\", \"name\": \"Group 1\" }, ...]";
+        return "Add a claim in the form \"groups\": [ { \"id\": \"group-id\", \"name\": \"Group 1\" }, ...]. Due to its potential size, it is only available at the user info endpoint.";
     }
 
     @Override
@@ -59,7 +63,7 @@ public class OrganizationsGroupsStructuredMapper
                 .map(g -> Map.of("id", g.getId(), "name", g.getName()))
                 .toList();
 
-        token.getOtherClaims().put("groups", groups);
+        OIDCAttributeMapperHelper.mapClaim(token, mappingModel, groups);
 
         return token;
     }
