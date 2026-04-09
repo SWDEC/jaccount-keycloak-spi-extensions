@@ -29,6 +29,7 @@ public class OrganizationsGroupsStructuredMapper
     private static final List<ProviderConfigProperty> configProperties = new ArrayList<>();
     private static final String CONFIG_PROP_ORGS_AS_GROUPS = "orgs_as_groups";
     private static final String CONFIG_PROP_ORG_ID_PREFIX = "org_id_prefix";
+    private static final String CONFIG_PROP_PREPEND_ORG_TO_GROUP_NAME = "prepend_org_to_group_name";
     private static final String CONFIG_PROP_GROUP_ID_PREFIX = "group_id_prefix";
     private static final String CONFIG_PROP_ID_OVERRIDE_ATTR = "id_override_attr";
 
@@ -53,6 +54,15 @@ public class OrganizationsGroupsStructuredMapper
         property.setHelpText(
                 "To avoid collisions among group and org ids, add a prefix that will be added to the group ids.");
         property.setType(ProviderConfigProperty.STRING_TYPE);
+        configProperties.add(property);
+
+        // Add toggle to prepend the organization name to the group names
+        property = new ProviderConfigProperty();
+        property.setName(CONFIG_PROP_PREPEND_ORG_TO_GROUP_NAME);
+        property.setLabel("Prepend Organization to Group Names");
+        property.setHelpText(
+                "If enabled, the name of the organization will be prepended to all group names of that organization. Example: Instead of '/Group-of-OrgA', the name will be 'OrgA/Group-of-OrgA'.");
+        property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
         configProperties.add(property);
 
         // Add a setting to prefix the ids of orgs as groups
@@ -118,6 +128,12 @@ public class OrganizationsGroupsStructuredMapper
         final String groupIdPrefix = mappingModel
                 .getConfig()
                 .getOrDefault(CONFIG_PROP_GROUP_ID_PREFIX, "");
+        final boolean prependOrgToGroupName = Boolean.parseBoolean(
+                mappingModel
+                        .getConfig()
+                        .getOrDefault(
+                                CONFIG_PROP_PREPEND_ORG_TO_GROUP_NAME,
+                                Boolean.FALSE.toString()));
         final String idOverrideAttr = mappingModel
                 .getConfig()
                 .getOrDefault(CONFIG_PROP_ID_OVERRIDE_ATTR, null);
@@ -141,7 +157,11 @@ public class OrganizationsGroupsStructuredMapper
                     // Add org groups
                     orgProvider.getOrganizationGroupsByMember(org, user)
                         .forEach((group) -> {
-                            final String groupPath = ModelToRepresentation.buildGroupPath(group);
+                            String groupPath = "";
+                            if (prependOrgToGroupName) {
+                                groupPath += org.getName();
+                            }
+                            groupPath += ModelToRepresentation.buildGroupPath(group);
 
                             groups.add(makeGroupEntry(groupIdPrefix, group.getId(), groupPath, idOverrideAttr, group.getAttributes()));
                         });
