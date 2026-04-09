@@ -9,7 +9,9 @@ import org.keycloak.models.ClientSessionContext;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.OrganizationModel;
 import org.keycloak.models.ProtocolMapperModel;
+import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionModel;
+import org.keycloak.models.utils.ModelToRepresentation;
 import org.keycloak.organization.OrganizationProvider;
 import org.keycloak.protocol.ProtocolMapperUtils;
 import org.keycloak.protocol.oidc.mappers.AbstractOIDCProtocolMapper;
@@ -122,8 +124,9 @@ public class OrganizationsGroupsStructuredMapper
 
         OrganizationProvider orgProvider = session.getProvider(
                 OrganizationProvider.class);
+        UserModel user = userSession.getUser();
         Stream<OrganizationModel> organizations = orgProvider
-                .getByMember(userSession.getUser())
+                .getByMember(user)
                 .filter(OrganizationModel::isEnabled);
 
         List<Map<String, String>> orgGroups = organizations
@@ -132,20 +135,16 @@ public class OrganizationsGroupsStructuredMapper
 
                     // Include this org as a group if configured
                     if (orgsAsGroups) {
-                        String orgId = orgIdPrefix + org.getId();
-                        // Allow overriding the ID with the specified attribute
-                        if (idOverrideAttr != null) {
-                            var attr = org.getAttributes().get(idOverrideAttr);
-                            if (attr != null && attr.size() > 0) {
-                                orgId = attr.get(0);
-                            }
-                        }
-
-                        groups.add(Map.of("gid", orgId, "displayName", org.getName()));
+                        groups.add(makeGroupEntry(orgIdPrefix, org.getId(), org.getName(), idOverrideAttr, org.getAttributes()));
                     }
 
-                    // TODO: Add org groups
-                    // orgProvider.getOrganizationGroupsByMember(organization, user).map(ModelToRepresentation::buildGroupPath)
+                    // Add org groups
+                    orgProvider.getOrganizationGroupsByMember(org, user)
+                        .forEach((group) -> {
+                            final String groupPath = ModelToRepresentation.buildGroupPath(group);
+
+                            groups.add(makeGroupEntry(groupIdPrefix, group.getId(), groupPath, idOverrideAttr, group.getAttributes()));
+                        });
 
                     return groups.stream();
                 })
@@ -161,5 +160,19 @@ public class OrganizationsGroupsStructuredMapper
         OIDCAttributeMapperHelper.mapClaim(token, mappingModel, orgGroups);
 
         return token;
+    }
+
+    private Map<String, String> makeGroupEntry(final String idPrefix, final String id, final String name, final String idOverrideAttr, final Map<String, List<String>> attributes) {
+        String gid = idPrefix + id;
+
+        // Allow overriding the ID with the specified attribute
+        if (idOverrideAttr != null) {
+            var attr = attributes.get(idOverrideAttr);
+            if (attr != null && attr.size() > 0) {
+                gid = attr.get(0);
+            }
+        }
+
+        return Map.of("gid", gid, "displayName", name);
     }
 }

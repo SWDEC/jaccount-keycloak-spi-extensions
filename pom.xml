@@ -12,7 +12,7 @@
   </build>
 
   <properties>
-    <keycloak.version>26.5.5</keycloak.version>
+    <keycloak.version>26.6.0</keycloak.version>
     <junit.version>5.10.2</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <maven.compiler.source>21</maven.compiler.source>

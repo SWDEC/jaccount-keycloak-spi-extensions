@@ -1,6 +1,6 @@
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.5 # should match keycloak version defined in pom.xml
+    image: quay.io/keycloak/keycloak:26.6.0 # should match keycloak version defined in pom.xml
     command: start-dev
     environment:
       KEYCLOAK_ADMIN: admin
