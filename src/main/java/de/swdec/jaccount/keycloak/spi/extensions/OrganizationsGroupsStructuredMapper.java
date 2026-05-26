@@ -31,21 +31,14 @@ public class OrganizationsGroupsStructuredMapper
     private static final String CONFIG_PROP_ORG_ID_PREFIX = "org_id_prefix";
     private static final String CONFIG_PROP_PREPEND_ORG_TO_GROUP_NAME = "prepend_org_to_group_name";
     private static final String CONFIG_PROP_GROUP_ID_PREFIX = "group_id_prefix";
-    private static final String CONFIG_PROP_ID_OVERRIDE_ATTR = "id_override_attr";
+    private static final String CONFIG_PROP_USE_ORG_ALIAS_AS_ID_ATTR = "use_org_alias_as_id_attr";
+    private static final String CONFIG_PROP_GROUP_OVERRIDE_ID_ATTR = "group_override_id_attr";
 
     static {
         // Add option to configure the claim name
         OIDCAttributeMapperHelper.addTokenClaimNameConfig(configProperties);
 
-        // Add toggle to include organizations themselves as groups
         ProviderConfigProperty property;
-        property = new ProviderConfigProperty();
-        property.setName(CONFIG_PROP_ORGS_AS_GROUPS);
-        property.setLabel("Include Organizations as groups");
-        property.setHelpText(
-                "In addition to organization groups, should the token also include organizations the user is a member of? This will look to the application like the user is part of a group called the name of the organization.");
-        property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
-        configProperties.add(property);
 
         // Add a setting to prefix the ids of groups
         property = new ProviderConfigProperty();
@@ -65,6 +58,15 @@ public class OrganizationsGroupsStructuredMapper
         property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
         configProperties.add(property);
 
+        // Add toggle to include organizations themselves as groups
+        property = new ProviderConfigProperty();
+        property.setName(CONFIG_PROP_ORGS_AS_GROUPS);
+        property.setLabel("Include Organizations as groups");
+        property.setHelpText(
+                "In addition to organization groups, should the token also include organizations the user is a member of? This will look to the application like the user is part of a group called the name of the organization.");
+        property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
+        configProperties.add(property);
+
         // Add a setting to prefix the ids of orgs as groups
         property = new ProviderConfigProperty();
         property.setName(CONFIG_PROP_ORG_ID_PREFIX);
@@ -74,13 +76,21 @@ public class OrganizationsGroupsStructuredMapper
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
 
-        // Add a setting to override the ids of orgs or groups if the specified
-        // attribute exists
+        // Add a setting to use the org's alias instead of its ID if the configured attribute is set to true
         property = new ProviderConfigProperty();
-        property.setName(CONFIG_PROP_ID_OVERRIDE_ATTR);
-        property.setLabel("ID-overriding attribute name");
+        property.setName(CONFIG_PROP_USE_ORG_ALIAS_AS_ID_ATTR);
+        property.setLabel("Attribute: Use Organization alias as ID");
         property.setHelpText(
-                "Use the specified attribute name in place of the group/org ID if found. Useful for connecting legacy systems, where you can add an attribute to the orgs/groups in Keycloak, and keep using pre-existing legacy system IDs.");
+                "To enable using the organization's alias in place of its ID, set this value to an attribute that will toggle this behavior. If the attribute is present and set to 'true' on an organization, the claim will include the organization with its alias rather than with its ID. The ID-prefix for organizations is ignored in this case. This setting is helpful when connecting systems that use legacy IDs.");
+        property.setType(ProviderConfigProperty.STRING_TYPE);
+        configProperties.add(property);
+
+        // Add a setting to use an org group's attribute appended to the containing org's alias instead of its ID
+        property = new ProviderConfigProperty();
+        property.setName(CONFIG_PROP_GROUP_OVERRIDE_ID_ATTR);
+        property.setLabel("Attribute: Group override ID postfix");
+        property.setHelpText(
+                "To enable using the value of an org group's attribute in place of its ID, set this value to an attribute that will contain the overriding ID. The value of that attribute will be appended to the org's alias for uniqueness. The ID-prefix for groups is ignored in this case. This setting is helpful when connecting systems that use legacy IDs.");
         property.setType(ProviderConfigProperty.STRING_TYPE);
         configProperties.add(property);
     }
@@ -134,9 +144,12 @@ public class OrganizationsGroupsStructuredMapper
                         .getOrDefault(
                                 CONFIG_PROP_PREPEND_ORG_TO_GROUP_NAME,
                                 Boolean.FALSE.toString()));
-        final String idOverrideAttr = mappingModel
+        final String useOrgAliasAsIdAttr = mappingModel
                 .getConfig()
-                .getOrDefault(CONFIG_PROP_ID_OVERRIDE_ATTR, null);
+                .getOrDefault(CONFIG_PROP_USE_ORG_ALIAS_AS_ID_ATTR, null);
+        final String groupOverrideIdAttr = mappingModel
+                .getConfig()
+                .getOrDefault(CONFIG_PROP_GROUP_OVERRIDE_ID_ATTR, null);
 
         OrganizationProvider orgProvider = session.getProvider(
                 OrganizationProvider.class);
@@ -151,19 +164,38 @@ public class OrganizationsGroupsStructuredMapper
 
                     // Include this org as a group if configured
                     if (orgsAsGroups) {
-                        groups.add(makeGroupEntry(orgIdPrefix, org.getId(), org.getName(), idOverrideAttr, org.getAttributes()));
+                        // Org alias as group ID
+                        String overriddenId = null;
+                        if (useOrgAliasAsIdAttr != null) {
+                            var attr = org.getAttributes().get(useOrgAliasAsIdAttr);
+                            if (attr != null && attr.size() > 0 && attr.get(0) == Boolean.TRUE.toString()) {
+                                overriddenId = org.getAlias();
+                            }
+                        }
+
+                        groups.add(makeGroupEntry(orgIdPrefix, org.getId(), overriddenId, org.getName()));
                     }
 
                     // Add org groups
                     orgProvider.getOrganizationGroupsByMember(org, user)
                         .forEach((group) -> {
-                            String groupPath = "";
+                            // Construct the group name
+                            String name = "";
                             if (prependOrgToGroupName) {
-                                groupPath += org.getName();
+                                name += org.getName();
                             }
-                            groupPath += ModelToRepresentation.buildGroupPath(group);
+                            name += ModelToRepresentation.buildGroupPath(group);
 
-                            groups.add(makeGroupEntry(groupIdPrefix, group.getId(), groupPath, idOverrideAttr, group.getAttributes()));
+                            // Override the group ID if configured and attribute is non-empty
+                            String overriddenId = null;
+                            if (groupOverrideIdAttr != null) {
+                                var attr = group.getAttributes().get(groupOverrideIdAttr);
+                                if (attr != null && attr.size() > 0) {
+                                    overriddenId = org.getAlias() + attr.get(0);
+                                }
+                            }
+
+                            groups.add(makeGroupEntry(groupIdPrefix, group.getId(), overriddenId, name));
                         });
 
                     return groups.stream();
@@ -182,15 +214,11 @@ public class OrganizationsGroupsStructuredMapper
         return token;
     }
 
-    private Map<String, String> makeGroupEntry(final String idPrefix, final String id, final String name, final String idOverrideAttr, final Map<String, List<String>> attributes) {
+    private Map<String, String> makeGroupEntry(final String idPrefix, final String id, final String overriddenId, final String name) {
         String gid = idPrefix + id;
 
-        // Allow overriding the ID with the specified attribute
-        if (idOverrideAttr != null) {
-            var attr = attributes.get(idOverrideAttr);
-            if (attr != null && attr.size() > 0) {
-                gid = attr.get(0);
-            }
+        if (overriddenId != null) {
+            gid = overriddenId;
         }
 
         return Map.of("gid", gid, "displayName", name);
