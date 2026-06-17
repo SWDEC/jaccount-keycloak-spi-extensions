@@ -80,7 +80,7 @@ jobs:
         run: mvn -B clean package
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Release v${{ needs.check_if_version_upgraded.outputs.to_version }}
           tag_name: v${{ needs.check_if_version_upgraded.outputs.to_version }}
